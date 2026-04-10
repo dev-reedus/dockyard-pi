@@ -1,0 +1,23 @@
+{
+  "name": "dockyard-pi-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_OPTIONS='--env-file=.env' tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node --env-file=.env dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.4",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.38",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}
