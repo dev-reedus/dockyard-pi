@@ -19,7 +19,8 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 
 COPY . .
 
-# Turbopack requires native binaries unavailable on ARM — use Webpack instead.
+# Turbopack native binaries unavailable on ARM — use Webpack instead.
+# SWC still runs for compilation and next/font.
 # next.config.ts has output: 'standalone' — produces a minimal self-contained build.
 RUN if [ "$TARGETARCH" = "arm" ] || [ "$TARGETARCH" = "arm64" ]; then \
       npx next build --webpack; \
