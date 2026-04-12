@@ -19,7 +19,7 @@ export interface Service {
   image: string
   tag: string
   status: ServiceStatus
-  health: ServiceHealth
+  health: ServiceHealth | string
   cpuPercent: number
   memoryMb: number
   memoryLimitMb: number

@@ -64,14 +64,21 @@ function uptimeDuration(startedAt: string): string {
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
-/** Return all containers (running + stopped) shaped as Service objects. */
+/** Return all containers (running + stopped) shaped as Service objects, with stats snapshots. */
 export async function listServices(): Promise<Service[]> {
   const containers = await docker.listContainers({ all: true })
 
-  return containers.map((c) => {
+  // Fetch stats for all containers in parallel. Stopped containers will reject — that's fine.
+  const statsResults = await Promise.allSettled(containers.map((c) => getStats(c.Id)))
+
+  return containers.map((c, i) => {
     const { image, tag } = splitImageTag(c.Image)
     // Container names come with a leading slash from Docker
     const containerName = (c.Names[0] ?? c.Id).replace(/^\//, '')
+
+    // Use the resolved stats snapshot; fall back to zeros if the container is stopped/unavailable
+    const statsResult = statsResults[i]
+    const stats = statsResult?.status === 'fulfilled' ? statsResult.value : null
 
     return {
       id: c.Id,
@@ -81,12 +88,10 @@ export async function listServices(): Promise<Service[]> {
       image,
       tag,
       status: parseStatus(c.State),
-      health: parseHealth(c.Status.includes('healthy') ? 'healthy' : undefined),
-      // Lightweight list endpoint doesn't include CPU/memory — stats route handles those
-      //TODO: to implement
-      cpuPercent: 0,
-      memoryMb: 0,
-      memoryLimitMb: 0,
+      health: c.Status,
+      cpuPercent: stats?.cpuPercent ?? 0,
+      memoryMb: stats?.memoryMb ?? 0,
+      memoryLimitMb: stats?.memoryLimitMb ?? 0,
       uptime:
         c.State === 'running' ? uptimeDuration(new Date(c.Created * 1000).toISOString()) : 'PT0S',
       internalPort: c.Ports[0]?.PrivatePort ?? null,
@@ -100,6 +105,7 @@ export async function listServices(): Promise<Service[]> {
 export async function getServiceById(id: string): Promise<Service> {
   const container = docker.getContainer(id)
   const info = await container.inspect()
+  const stats = await getStats(id)
 
   const { image, tag } = splitImageTag(info.Config.Image)
   const containerName = info.Name.replace(/^\//, '')
@@ -113,9 +119,9 @@ export async function getServiceById(id: string): Promise<Service> {
     tag,
     status: parseStatus(info.State.Status),
     health: parseHealth(health),
-    cpuPercent: 0, // caller should follow up with getStats()
-    memoryMb: 0,
-    memoryLimitMb: 0,
+    cpuPercent: stats.cpuPercent,
+    memoryMb: stats.memoryMb,
+    memoryLimitMb: stats.memoryLimitMb,
     uptime: info.State.Running ? uptimeDuration(info.State.StartedAt) : 'PT0S',
     internalPort: info.NetworkSettings.Ports
       ? parseInt(Object.keys(info.NetworkSettings.Ports)[0] ?? '0', 10) || null
@@ -231,33 +237,51 @@ export async function startContainer(id: string): Promise<void> {
 
 /**
  * Pull the latest image and recreate the container.
- * For Compose services, use the compose-update action.
+ * If the pull fails (e.g. no network, registry unreachable), recreate using the local image.
+ * For Compose services, use the compose-update action instead.
  */
 export async function recreateContainer(id: string): Promise<void> {
   const container = docker.getContainer(id)
   const info = await container.inspect()
 
-  // Pull the latest version of the image
-  await new Promise<void>(async (resolve, reject) => {
-    await docker.pull(info.Config.Image, (err: Error | null, stream: NodeJS.ReadableStream) => {
-      if (err) {
-        reject(err)
-        return
-      }
-      docker.modem.followProgress(stream, (err2: Error | null) => {
-        if (err2) reject(err2)
-        else resolve()
+  // Try to pull the latest image — fall back to the local image ID if pull fails
+  const { image } = splitImageTag(info.Config.Image)
+  let imageToUse = info.Config.Image
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      void docker.pull(info.Config.Image, (err: Error | null, stream: NodeJS.ReadableStream) => {
+        if (err) {
+          reject(err)
+          return
+        }
+        docker.modem.followProgress(stream, (err2: Error | null) => {
+          if (err2) reject(err2)
+          else resolve()
+        })
       })
     })
-  })
+    console.log(`[recreate] Pulled latest image for ${info.Config.Image}`)
+  } catch (err) {
+    // Fall back to the exact image ID — avoids remote resolution if the tag is unavailable locally
+    imageToUse = image
+    console.warn(`[recreate] Pull failed, recreating with local image ${imageToUse}:`, err)
+  }
 
   // Stop and remove the old container, then start a new one with the same config
   await container.stop().catch(() => {
     /* already stopped */
   })
   await container.remove()
-  const newContainer = await docker.createContainer(
-    info.HostConfig as Dockerode.ContainerCreateOptions,
-  )
+  const newContainer = await docker.createContainer({
+    name: info.Name.replace(/^\//, ''),
+    Image: imageToUse,
+    Cmd: info.Config.Cmd,
+    Env: info.Config.Env,
+    ExposedPorts: info.Config.ExposedPorts,
+    Labels: info.Config.Labels,
+    HostConfig: info.HostConfig,
+    NetworkingConfig: { EndpointsConfig: info.NetworkSettings.Networks },
+  })
   await newContainer.start()
 }

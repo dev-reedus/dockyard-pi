@@ -108,9 +108,9 @@ curl -H "Authorization: Bearer <token>" http://localhost:3001/services
 
 ```
 src/
-  index.ts              Entry point — Express app, middleware, route registration
+  index.ts              Entry point — Express app, proxy, route registration
   types.ts              Shared types (mirrors src/types/service.ts in the Next.js app)
-  middleware/
+  proxy/
     auth.ts             Bearer token check using timing-safe comparison
   lib/
     docker.ts           All dockerode calls — the only file that talks to Docker
