@@ -1,9 +1,19 @@
 import type { Metadata } from 'next'
+import { Inter, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 
-// Fonts are loaded via <link> in the <head> instead of next/font, because
-// next/font requires SWC which is unavailable on linux/arm (32-bit Pi).
-// CSS variables are defined in globals.css.
+// Inter — main UI font
+const inter = Inter({
+  variable: '--font-sans',
+  subsets: ['latin'],
+})
+
+// IBM Plex Mono — used for metrics, numbers, and code snippets
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: '--font-mono',
+  subsets: ['latin'],
+  weight: ['400', '500'],
+})
 
 export const metadata: Metadata = {
   title: 'DockYard Pi',
@@ -16,15 +26,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${inter.variable} ${ibmPlexMono.variable} h-full antialiased`}>
       <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
     </html>
   )

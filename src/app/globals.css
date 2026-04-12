@@ -3,9 +3,6 @@
 :root {
   --background: #0d0f14;
   --foreground: #f4f4f5;
-  /* Font families — previously injected by next/font, now defined here */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 @theme inline {

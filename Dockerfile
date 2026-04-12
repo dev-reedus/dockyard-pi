@@ -7,17 +7,21 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+# Force-install the correct SWC native binary for the target platform.
+# npm sometimes skips optional platform packages inside Docker — this ensures
+# the right one is present so Next.js doesn't fall back to broken WASM mode.
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      npm install @next/swc-linux-arm64-gnu --no-save; \
+    elif [ "$TARGETARCH" = "arm" ]; then \
+      npm install @next/swc-linux-arm-gnueabihf --no-save; \
+    fi
+
 COPY . .
 
-# On ARM, two native tools are unavailable:
-#   - Turbopack: no arm binaries → fall back to Webpack
-#   - SWC (Rust compiler): crashes on arm32 → fall back to Babel
-# When .babelrc exists, Next.js automatically uses Babel instead of SWC.
+# Turbopack requires native binaries unavailable on ARM — use Webpack instead.
 # next.config.ts has output: 'standalone' — produces a minimal self-contained build.
-ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "arm" ]; then \
-      echo '{"presets":["next/babel"]}' > .babelrc && npx next build --webpack; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
+RUN if [ "$TARGETARCH" = "arm" ] || [ "$TARGETARCH" = "arm64" ]; then \
       npx next build --webpack; \
     else \
       npm run build; \
