@@ -1,4 +1,6 @@
-FROM node:22-alpine AS builder
+# node:22-slim (Debian/glibc) instead of alpine (musl) — lightningcss and other
+# native addons used during the build don't ship linux-arm-musl binaries.
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
