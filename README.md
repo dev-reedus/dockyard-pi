@@ -1,2 +1,121 @@
-# dockyard-pi
-A private control panel for your raspberry Pi
+<p align="center">
+  <img src="public/logo.png" width="80" alt="DockYard logo" />
+</p>
+
+<h1 align="center">DockYard</h1>
+<p align="center">A private control panel for your Raspberry Pi — built to experiment Next.js App Router, Server Actions, and SSR patterns.</p>
+
+---
+
+## What it is
+
+DockYard sits above your existing Docker setup and gives you a focused, opinionated dashboard built around your
+workflow — not every Docker use case on earth.
+
+- **Services overview** — status, health, CPU, memory, public URL, uptime
+- **Service detail** — ports, volumes, logs, resource stats, healthchecks
+- **Actions** — start, stop, restart, pull & recreate via Server Actions
+- **Deployment history** — full audit trail of every mutation
+- **Events panel** — container events, alerts, system messages
+
+## Architecture
+
+```
+Browser
+  └── Next.js (App Router)
+        ├── Server Components  →  Server side render
+        ├── Client Components  →  SWR polling, charts, action buttons
+        └── Server Actions     →  mutations (restart, stop, recreate…)
+              └── Pi Agent (Express)
+                    └── Docker socket  (/var/run/docker.sock)
+```
+
+The Next.js app never touches the Docker socket directly. All Docker operations go through a small Express agent running
+on the Pi that exposes only the operations the dashboard needs.
+
+## Stack
+
+| Layer              | Tech                                     |
+| ------------------ | ---------------------------------------- |
+| Frontend + runtime | Next.js 15, React 19, Tailwind CSS       |
+| Data fetching      | Server Components + SWR for live polling |
+| Mutations          | Server Actions (`'use server'`)          |
+| Pi agent           | Node.js + Express 5                      |
+| Docker access      | `dockerode` via the agent                |
+| Auth               | Cookie session + bcrypt password         |
+
+## Project structure
+
+```
+/
+├── src/
+│   ├── app/
+│   │   ├── (dashboard)/        # Protected route group
+│   │   │   ├── dashboard/      # Health summary + events
+│   │   │   ├── services/       # Service list + [id] detail
+│   │   │   ├── deployments/    # Action history
+│   │   │   └── settings/       # App config
+│   │   ├── api/services/       # Route handlers for SWR polling
+│   │   └── login/              # Auth page
+│   ├── components/             # UI components
+│   ├── hooks/                  # useServices, useServiceStats
+│   ├── lib/                    # fetch adapters
+│   └── types/                  # Shared TypeScript types
+└── agent/
+    └── src/
+        ├── routes/             # services, stats, logs, actions, deployments
+        ├── middleware/auth.ts  # Token-based auth
+        └── lib/docker.ts       # dockerode wrapper
+```
+
+## Setup
+
+### Deploy on the Pi (Docker Compose — recommended)
+
+Clone the repo on the Pi and run:
+
+```bash
+sh run.sh
+```
+
+The script will:
+
+1. Copy `.env.example` → `.env` and `agent/.env.example` → `agent/.env` if they don't exist
+2. Auto-generate `AUTH_SECRET` and `AGENT_TOKEN` (shared between both services)
+3. Warn if `AUTH_PASSWORD` is still the default placeholder
+4. Build both Docker images and start the stack
+
+DockYard will be available at `http://<pi-ip>:3000`.
+
+> **Change `AUTH_PASSWORD`** in `.env` before putting this on a network.
+
+### Local development
+
+```bash
+# Terminal 1 — agent
+cd agent && cp .env.example .env && npm install && npm run dev
+
+# Terminal 2 — Next.js app
+cp .env.example .env && npm install && npm run dev
+```
+
+## Improvements
+
+### v1 — in progress
+
+- [ ] Sync types between agent and Next.js app (single source of truth)
+- [ ] Live log tail via SSE or WebSocket (currently last 50 lines, static)
+- [ ] Settings page — configure polling intervals, auth, danger zone actions
+- [ ] Deployments page polish — styled cards matching the rest of the UI
+- [ ] Better request logger on the agent (replace `console.log`)
+- [ ] Per-service action allowlist (e.g. db cannot recreate from UI)
+
+### v2 — future
+
+- [ ] Compose diff preview before redeploy
+- [ ] GitHub webhook integration for one-click deploys from CI/CD
+- [ ] Cloudflare / Tailscale tunnel and DNS visualization
+- [ ] Pi host metrics — disk, temperature, CPU load (not just container stats)
+- [ ] Multiple Pi device support
+- [ ] Resource usage charts with history (currently point-in-time only)
+- [ ] Dark/light theme toggle
