@@ -9,11 +9,15 @@ RUN npm ci
 
 COPY . .
 
-# Turbopack (Next 16 default) requires native binaries — not available on arm.
-# Use Webpack on arm (Pi), Turbopack everywhere else.
+# On ARM, two native tools are unavailable:
+#   - Turbopack: no arm binaries → fall back to Webpack
+#   - SWC (Rust compiler): crashes on arm32 → fall back to Babel
+# When .babelrc exists, Next.js automatically uses Babel instead of SWC.
 # next.config.ts has output: 'standalone' — produces a minimal self-contained build.
 ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "arm" ] || [ "$TARGETARCH" = "arm64" ]; then \
+RUN if [ "$TARGETARCH" = "arm" ]; then \
+      echo '{"presets":["next/babel"]}' > .babelrc && npx next build --webpack; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
       npx next build --webpack; \
     else \
       npm run build; \
