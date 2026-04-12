@@ -75,7 +75,7 @@ on the Pi that exposes only the operations the dashboard needs.
 Clone the repo on the Pi and run:
 
 ```bash
-sh run.sh
+bash run.sh
 ```
 
 The script will:

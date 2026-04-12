@@ -7,8 +7,15 @@ RUN npm ci
 
 COPY . .
 
-# next.config.ts has output: 'standalone' — produces a minimal self-contained build
-RUN npm run build
+# Turbopack (Next 16 default) requires native binaries — not available on arm.
+# Use Webpack on arm (Pi), Turbopack everywhere else.
+# next.config.ts has output: 'standalone' — produces a minimal self-contained build.
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "arm" ] || [ "$TARGETARCH" = "arm64" ]; then \
+      npx next build --webpack; \
+    else \
+      npm run build; \
+    fi
 
 # --- runner ---
 FROM node:22-alpine AS runner
