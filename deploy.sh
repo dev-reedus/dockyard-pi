@@ -95,7 +95,7 @@ $SCP "$TARBALL" "${PI_HOST}:~/${IMAGE}.tar.gz"
 # ---------------------------------------------------------------------------
 # Load and start on Pi
 # ---------------------------------------------------------------------------
-info "Loading image and restarting stack on Pi..."
+info "Loading image..."
 $SSH "$PI_HOST" bash <<EOF
   docker load < ~/${IMAGE}.tar.gz
   rm ~/${IMAGE}.tar.gz
