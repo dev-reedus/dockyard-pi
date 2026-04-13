@@ -7,26 +7,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Force-install the correct SWC native binary for the target platform.
-# npm sometimes skips optional platform packages inside Docker — this ensures
-# the right one is present so Next.js doesn't fall back to broken WASM mode.
-ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-      npm install @next/swc-linux-arm64-gnu --no-save; \
-    elif [ "$TARGETARCH" = "arm" ]; then \
-      npm install @next/swc-linux-arm-gnueabihf --no-save; \
-    fi
-
 COPY . .
 
-# Turbopack native binaries unavailable on ARM — use Webpack instead.
-# SWC still runs for compilation and next/font.
 # next.config.ts has output: 'standalone' — produces a minimal self-contained build.
-RUN if [ "$TARGETARCH" = "arm" ] || [ "$TARGETARCH" = "arm64" ]; then \
-      npx next build --webpack; \
-    else \
-      npm run build; \
-    fi
+RUN npm run build
 
 # --- runner ---
 FROM node:22-alpine AS runner
