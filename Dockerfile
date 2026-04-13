@@ -9,8 +9,14 @@ RUN npm ci
 
 COPY . .
 
+# Turbopack native binaries are unavailable on ARM — use Webpack instead.
 # next.config.ts has output: 'standalone' — produces a minimal self-contained build.
-RUN npm run build
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "arm" ] || [ "$TARGETARCH" = "arm64" ]; then \
+      npx next build --webpack; \
+    else \
+      npm run build; \
+    fi
 
 # --- runner ---
 FROM node:22-alpine AS runner

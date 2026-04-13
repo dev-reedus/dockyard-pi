@@ -70,7 +70,9 @@ on the Pi that exposes only the operations the dashboard needs.
 
 ## Setup
 
-### Deploy on the Pi (Docker Compose — recommended)
+### Deploy on the Pi (Docker Compose — 64-bit only)
+
+> **32-bit Pi:** use the [build and deploy from another machine](#build-and-deploy-from-another-machine) section instead.
 
 Clone the repo on the Pi and run:
 
@@ -88,6 +90,26 @@ The script will:
 DockYard will be available at `http://<pi-ip>:3000`.
 
 > **Change `AUTH_PASSWORD`** in `.env` before putting this on a network.
+
+### Build and deploy from another machine
+
+> **Required if your Pi runs a 32-bit OS (arm/v7).** Next.js 16 relies on SWC and Turbopack native binaries that are unavailable on arm32 — the build will fail on the Pi itself. Build on your dev machine and deploy the pre-built image instead.
+
+If your Pi is 64-bit this is optional, but still useful to offload the heavy build from the Pi.
+
+```bash
+./deploy.sh                    # defaults to pi@raspberrypi.local
+./deploy.sh pi@192.168.1.42    # custom host
+```
+
+The script will:
+
+1. Register QEMU binfmt handlers if the host is x86_64 (skipped on arm64 — runs arm/v7 natively)
+2. Build the `dockyard-app` image for `linux/arm/v7` via `docker buildx`
+3. Export, copy via `scp`, and load the image on the Pi
+4. Run `docker compose up -d` on the Pi to restart the stack
+
+The Pi must have Docker installed and the repo cloned at `~/dockyard-pi`.
 
 ### Local development
 

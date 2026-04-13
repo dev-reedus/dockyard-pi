@@ -6,7 +6,7 @@ services:
         container_name: dockyard-agent
         restart: unless-stopped
         volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
+            - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
         env_file:
             - ./agent/.env
         networks:
