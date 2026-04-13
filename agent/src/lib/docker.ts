@@ -154,8 +154,10 @@ export async function getStats(id: string): Promise<ServiceStats> {
     raw.cpu_stats.online_cpus ?? raw.cpu_stats.cpu_usage.percpu_usage?.length ?? 1
   const cpuPercent = systemDelta > 0 ? (cpuDelta / systemDelta) * numCpus * 100 : 0
 
-  const memoryMb: number = raw.memory_stats.usage / 1024 / 1024
-  const memoryLimitMb: number = raw.memory_stats.limit / 1024 / 1024
+  // memory_stats may be empty if cgroup memory accounting is disabled on the host.
+  // Enable it on Pi by adding `cgroup_enable=memory cgroup_memory=1` to /boot/cmdline.txt
+  const memoryMb: number = (raw.memory_stats.usage ?? 0) / 1024 / 1024
+  const memoryLimitMb: number = (raw.memory_stats.limit ?? 0) / 1024 / 1024
 
   const networks = raw.networks as
     | Record<string, { rx_bytes: number; tx_bytes: number }>
