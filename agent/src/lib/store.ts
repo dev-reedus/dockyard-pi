@@ -1,5 +1,4 @@
 // In-memory audit store for deployments and events.
-//
 // v1: data lives in memory — it's lost on agent restart but that's acceptable
 // for a learning setup. v2 upgrade path: swap the arrays for SQLite writes
 // (better-sqlite3 is a good lightweight choice on the Pi).
@@ -64,6 +63,10 @@ export function finishDeployment(
 export function getDeployments(serviceId?: string): Deployment[] {
   if (!serviceId) return deployments
   return deployments.filter((d) => d.serviceId === serviceId)
+}
+
+export function getDeploymentById(deploymentId: string): Deployment | undefined {
+  return deployments.find((deployment) => deployment.id === deploymentId)
 }
 
 // ---------------------------------------------------------------------------

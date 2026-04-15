@@ -1,5 +1,4 @@
 // Bearer token authentication middleware
-//
 // Every request must include: Authorization: Bearer <AGENT_TOKEN>
 // The token is compared using a timing-safe comparison to prevent timing attacks
 

@@ -1,5 +1,4 @@
 // DockYard Pi Agent — entry point.
-//
 // A minimal Express server that exposes Docker container data and lifecycle
 // actions to the Next.js dashboard. For security reasons it exposes ONLY the
 // operations the dashboard needs — no raw Docker API passthrough.
@@ -23,6 +22,12 @@ const app = express()
 // Global middleware
 // ---------------------------------------------------------------------------
 app.use(express.json())
+
+// Health check — unauthenticated
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() })
+})
+
 app.use(requireAuth)
 
 // Simple request logger
@@ -44,11 +49,6 @@ app.use('/services/:id/actions', actionsRouter)
 
 app.use('/deployments', deploymentsRouter)
 app.use('/events', eventsRouter)
-
-// Health check — unauthenticated
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime() })
-})
 
 // ---------------------------------------------------------------------------
 // Global error handler

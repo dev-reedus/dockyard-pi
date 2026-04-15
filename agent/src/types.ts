@@ -1,5 +1,4 @@
 // Agent-internal types.
-//
 // These mirror the shapes defined in the Next.js app's src/types/service.ts.
 // Both sides must stay in sync — if you add a field here, add it there too.
 //TODO: automatize syncing with the app's types, to keep only one source of truth'
@@ -19,7 +18,7 @@ export interface Service {
   image: string
   tag: string
   status: ServiceStatus
-  health: ServiceHealth | string
+  health: ServiceHealth
   cpuPercent: number
   memoryMb: number
   memoryLimitMb: number

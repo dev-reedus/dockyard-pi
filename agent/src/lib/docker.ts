@@ -1,5 +1,4 @@
 // Docker adapter — how the agent talks to the Docker socket.
-//
 // All routes go through the functions here rather than using dockerode directly.
 // This keeps Docker API details contained and makes it easy to mock in tests later.
 
@@ -28,6 +27,80 @@ function parseHealth(health: string | undefined): ServiceHealth {
   if (health === 'unhealthy') return 'unhealthy'
   if (health === 'starting') return 'starting'
   return 'none'
+}
+
+function parseContainerSummaryHealth(statusText: string): ServiceHealth {
+  if (statusText.includes('(healthy)')) return 'healthy'
+  if (statusText.includes('(unhealthy)')) return 'unhealthy'
+  if (statusText.includes('(health: starting)')) return 'starting'
+  return 'none'
+}
+
+function getContainerStartedAt(status: string, startedAt: string, createdAt: string): string {
+  if (status !== 'running') {
+    return 'PT0S'
+  }
+
+  return uptimeDuration(startedAt || createdAt)
+}
+
+function getPrimaryPrivatePort(ports: Record<string, unknown> | undefined): number | null {
+  if (!ports) return null
+
+  const firstPort = Object.keys(ports)[0]
+  if (!firstPort) return null
+
+  return parseInt(firstPort, 10) || null
+}
+
+function parseDockerLogBuffer(raw: Buffer): LogLine[] {
+  const lines: LogLine[] = []
+  let offset = 0
+
+  while (offset + 8 <= raw.length) {
+    const streamType = raw[offset]
+    const frameSize = raw.readUInt32BE(offset + 4)
+    const start = offset + 8
+    const end = start + frameSize
+
+    if (end > raw.length) {
+      break
+    }
+
+    const content = raw.toString('utf8', start, end)
+    for (const line of content.split('\n')) {
+      if (!line) continue
+
+      const spaceIdx = line.indexOf(' ')
+      if (spaceIdx === -1) continue
+
+      lines.push({
+        timestamp: line.slice(0, spaceIdx),
+        stream: streamType === 2 ? 'stderr' : 'stdout',
+        message: line.slice(spaceIdx + 1),
+      })
+    }
+
+    offset = end
+  }
+
+  return lines
+}
+
+async function getStatsOrDefault(id: string): Promise<ServiceStats> {
+  try {
+    return await getStats(id)
+  } catch {
+    return {
+      serviceId: id,
+      cpuPercent: 0,
+      memoryMb: 0,
+      memoryLimitMb: 0,
+      networkRxMb: 0,
+      networkTxMb: 0,
+      sampledAt: new Date().toISOString(),
+    }
+  }
 }
 
 /**
@@ -70,6 +143,9 @@ export async function listServices(): Promise<Service[]> {
 
   // Fetch stats for all containers in parallel. Stopped containers will reject — that's fine.
   const statsResults = await Promise.allSettled(containers.map((c) => getStats(c.Id)))
+  const inspectResults = await Promise.allSettled(
+    containers.map((c) => docker.getContainer(c.Id).inspect()),
+  )
 
   return containers.map((c, i) => {
     const { image, tag } = splitImageTag(c.Image)
@@ -79,6 +155,8 @@ export async function listServices(): Promise<Service[]> {
     // Use the resolved stats snapshot; fall back to zeros if the container is stopped/unavailable
     const statsResult = statsResults[i]
     const stats = statsResult?.status === 'fulfilled' ? statsResult.value : null
+    const inspectResult = inspectResults[i]
+    const inspectInfo = inspectResult?.status === 'fulfilled' ? inspectResult.value : null
 
     return {
       id: c.Id,
@@ -88,12 +166,15 @@ export async function listServices(): Promise<Service[]> {
       image,
       tag,
       status: parseStatus(c.State),
-      health: c.Status,
+      health: parseContainerSummaryHealth(c.Status),
       cpuPercent: stats?.cpuPercent ?? 0,
       memoryMb: stats?.memoryMb ?? 0,
       memoryLimitMb: stats?.memoryLimitMb ?? 0,
-      uptime:
-        c.State === 'running' ? uptimeDuration(new Date(c.Created * 1000).toISOString()) : 'PT0S',
+      uptime: getContainerStartedAt(
+        c.State,
+        inspectInfo?.State.StartedAt ?? '',
+        new Date(c.Created * 1000).toISOString(),
+      ),
       internalPort: c.Ports[0]?.PrivatePort ?? null,
       publicUrl: null,
       lastDeployedAt: null,
@@ -105,7 +186,7 @@ export async function listServices(): Promise<Service[]> {
 export async function getServiceById(id: string): Promise<Service> {
   const container = docker.getContainer(id)
   const info = await container.inspect()
-  const stats = await getStats(id)
+  const stats = await getStatsOrDefault(id)
 
   const { image, tag } = splitImageTag(info.Config.Image)
   const containerName = info.Name.replace(/^\//, '')
@@ -122,10 +203,8 @@ export async function getServiceById(id: string): Promise<Service> {
     cpuPercent: stats.cpuPercent,
     memoryMb: stats.memoryMb,
     memoryLimitMb: stats.memoryLimitMb,
-    uptime: info.State.Running ? uptimeDuration(info.State.StartedAt) : 'PT0S',
-    internalPort: info.NetworkSettings.Ports
-      ? parseInt(Object.keys(info.NetworkSettings.Ports)[0] ?? '0', 10) || null
-      : null,
+    uptime: getContainerStartedAt(info.State.Status, info.State.StartedAt, info.Created),
+    internalPort: getPrimaryPrivatePort(info.NetworkSettings.Ports),
     publicUrl: null,
     lastDeployedAt: null,
   }
@@ -198,28 +277,7 @@ export async function getLogs(id: string, tail = 100): Promise<LogLine[]> {
     tail,
   })
 
-  // stream is a Buffer when follow: false (default)
-  const raw = stream.toString('utf8')
-  const lines: LogLine[] = []
-
-  for (const line of raw.split('\n')) {
-    if (line.length < 8) continue
-
-    // Byte 0 is stream type: 1 = stdout, 2 = stderr
-    const streamType = line.charCodeAt(0)
-    // Strip the 8-byte header and parse "timestamp message"
-    const content = line.slice(8)
-    const spaceIdx = content.indexOf(' ')
-    if (spaceIdx === -1) continue
-
-    lines.push({
-      timestamp: content.slice(0, spaceIdx),
-      stream: streamType === 2 ? 'stderr' : 'stdout',
-      message: content.slice(spaceIdx + 1),
-    })
-  }
-
-  return lines
+  return parseDockerLogBuffer(stream)
 }
 
 // ---------------------------------------------------------------------------
@@ -246,8 +304,11 @@ export async function recreateContainer(id: string): Promise<void> {
   const container = docker.getContainer(id)
   const info = await container.inspect()
 
-  // Try to pull the latest image — fall back to the local image ID if pull fails
-  const { image } = splitImageTag(info.Config.Image)
+  if (info.Config.Labels['com.docker.compose.project']) {
+    throw new Error('Compose-managed containers must use compose-update instead of recreate')
+  }
+
+  // Try to pull the latest image — fall back to the exact configured image reference if pull fails.
   let imageToUse = info.Config.Image
 
   try {
@@ -265,8 +326,7 @@ export async function recreateContainer(id: string): Promise<void> {
     })
     console.log(`[recreate] Pulled latest image for ${info.Config.Image}`)
   } catch (err) {
-    // Fall back to the exact image ID — avoids remote resolution if the tag is unavailable locally
-    imageToUse = image
+    imageToUse = info.Config.Image
     console.warn(`[recreate] Pull failed, recreating with local image ${imageToUse}:`, err)
   }
 
@@ -280,8 +340,13 @@ export async function recreateContainer(id: string): Promise<void> {
     Image: imageToUse,
     Cmd: info.Config.Cmd,
     Env: info.Config.Env,
+    Entrypoint: info.Config.Entrypoint,
     ExposedPorts: info.Config.ExposedPorts,
     Labels: info.Config.Labels,
+    User: info.Config.User,
+    WorkingDir: info.Config.WorkingDir,
+    Tty: info.Config.Tty,
+    OpenStdin: info.Config.OpenStdin,
     HostConfig: info.HostConfig,
     NetworkingConfig: { EndpointsConfig: info.NetworkSettings.Networks },
   })

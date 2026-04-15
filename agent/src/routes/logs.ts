@@ -15,7 +15,8 @@ logsRouter.get('/', async (req: Request<{ id: string }>, res) => {
 
   // Parse the ?tail= query param, default to 100, cap at 1000 to avoid huge responses
   const tailRaw = req.query['tail']
-  const tail = Math.min(typeof tailRaw === 'string' ? parseInt(tailRaw, 10) || 100 : 100, 1000)
+  const requestedTail = typeof tailRaw === 'string' ? parseInt(tailRaw, 10) || 100 : 100
+  const tail = Math.max(1, Math.min(requestedTail, 1000))
 
   const logs = await getLogs(id, tail)
   res.json(logs)

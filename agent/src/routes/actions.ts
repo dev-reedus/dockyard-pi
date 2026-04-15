@@ -14,7 +14,7 @@ import {
   startContainer,
   stopContainer,
 } from '../lib/docker.js'
-import { addEvent, finishDeployment, startDeployment } from '../lib/store.js'
+import { addEvent, finishDeployment, getDeploymentById, startDeployment } from '../lib/store.js'
 import type { ActionType } from '../types.js'
 
 const execFileAsync = promisify(execFile)
@@ -69,17 +69,12 @@ actionsRouter.post('/', async (req: Request<{ id: string }>, res) => {
     finishDeployment(deploymentId, 'success', logsSnippet)
     addEvent('deploy', 'info', `Action '${typedAction}' succeeded on ${id}`, id)
 
-    // Return the completed deployment record
-    res.json({
-      id: deploymentId,
-      serviceId: id,
-      action: typedAction,
-      actor: 'api',
-      startedAt: new Date().toISOString(),
-      finishedAt: new Date().toISOString(),
-      result: 'success',
-      logsSnippet,
-    })
+    const deployment = getDeploymentById(deploymentId)
+    if (!deployment) {
+      throw new Error('Deployment record was not found after completion')
+    }
+
+    res.json(deployment)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     finishDeployment(deploymentId, 'failure', message)
@@ -121,14 +116,20 @@ async function runComposeUpdate(containerId: string): Promise<string> {
   }
 
   // Run pull then up -d, capturing output for the audit log
-  const [pullResult, upResult] = await Promise.all([
-    execFileAsync('docker', ['compose', '--project-directory', workdir, 'pull'], {
+  const pullResult = await execFileAsync(
+    'docker',
+    ['compose', '--project-directory', workdir, 'pull'],
+    {
       cwd: workdir,
-    }),
-    execFileAsync('docker', ['compose', '--project-directory', workdir, 'up', '-d'], {
+    },
+  )
+  const upResult = await execFileAsync(
+    'docker',
+    ['compose', '--project-directory', workdir, 'up', '-d'],
+    {
       cwd: workdir,
-    }),
-  ])
+    },
+  )
 
   return [pullResult.stdout, pullResult.stderr, upResult.stdout, upResult.stderr]
     .filter(Boolean)
