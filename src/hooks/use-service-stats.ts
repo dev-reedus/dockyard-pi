@@ -13,12 +13,21 @@ const fetcher = (url: string): Promise<ServiceStats> =>
     return r.json() as Promise<ServiceStats>
   })
 
-/**
- * @param serviceId      - container ID or name
- * @param refreshInterval - how often to re-fetch in ms (default 5s)
- */
-export function useServiceStats(serviceId: string, refreshInterval = 5_000) {
+interface UseServiceStatsOptions {
+  /** How often to re-fetch in ms (default 5s) */
+  refreshInterval?: number
+  /**
+   * Server-fetched stats to display immediately on first render,
+   * before the first SWR poll completes. Prevents a loading flash.
+   */
+  fallbackData?: ServiceStats
+}
+
+export function useServiceStats(serviceId: string, options: UseServiceStatsOptions = {}) {
+  const { refreshInterval = 5_000, fallbackData } = options
   return useSWR<ServiceStats>(`/api/services/${serviceId}/stats`, fetcher, {
     refreshInterval,
+    // exactOptionalPropertyTypes requires we omit the key entirely when undefined
+    ...(fallbackData !== undefined ? { fallbackData } : {}),
   })
 }

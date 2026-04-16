@@ -135,7 +135,7 @@ extended with other ideas:
       currently resets on every agent restart. On the Pi this is rare, but deployments and events history should survive
       reboots.
 
-- [ ] **Live log streaming** — Replace the snapshot log endpoint with an SSE (Server-Sent Events) stream. The client
+- [x] **Live log streaming** — Replace the snapshot log endpoint with an SSE (Server-Sent Events) stream. The client
       keeps an open HTTP connection and the agent pipes `docker logs --follow` output in real time. No WebSocket server
       needed — SSE is one-directional and works over plain HTTP.
 

@@ -2,6 +2,7 @@
 // All routes go through the functions here rather than using dockerode directly.
 // This keeps Docker API details contained and makes it easy to mock in tests later.
 
+import { PassThrough, type Duplex } from 'node:stream'
 import Dockerode from 'dockerode'
 import type { LogLine, Service, ServiceHealth, ServiceStats, ServiceStatus } from '../types.js'
 
@@ -278,6 +279,53 @@ export async function getLogs(id: string, tail = 100): Promise<LogLine[]> {
   })
 
   return parseDockerLogBuffer(stream)
+}
+
+/**
+ * Open a live log stream for a container.
+ *
+ * Returns two PassThrough streams (stdout / stderr) split via Docker's
+ * multiplexing protocol, plus a destroy() to close the underlying socket.
+ *
+ * Callers are responsible for calling destroy() when the consumer disconnects.
+ */
+export async function startLogStream(
+  id: string,
+  tail: number,
+): Promise<{ stdout: PassThrough; stderr: PassThrough; destroy: () => void }> {
+  const container = docker.getContainer(id)
+
+  // follow:true keeps the connection open as new lines arrive.
+  // The raw socket uses Docker's 8-byte multiplex framing — modem.demuxStream handles that.
+  const rawStream = await container.logs({
+    follow: true,
+    stdout: true,
+    stderr: true,
+    timestamps: true,
+    tail,
+  })
+
+  const stdout = new PassThrough()
+  const stderr = new PassThrough()
+
+  // The dockerode type for logs() says ReadableStream, but the actual runtime value
+  // is a Node.js Duplex — cast so we can call .destroy() and listen to events.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nodeStream = rawStream as any as Duplex
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(docker.modem as any).demuxStream(nodeStream, stdout, stderr)
+
+  nodeStream.on('end', () => {
+    stdout.end()
+    stderr.end()
+  })
+
+  return {
+    stdout,
+    stderr,
+    destroy: () => nodeStream.destroy(),
+  }
 }
 
 // ---------------------------------------------------------------------------

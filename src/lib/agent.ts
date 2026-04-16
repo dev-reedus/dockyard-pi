@@ -36,3 +36,16 @@ export async function agentFetch<T>(path: string, init: AgentRequestInit = {}): 
 
   return res.json() as Promise<T>
 }
+
+/**
+ * Returns the URL and auth headers needed to proxy an SSE stream from the agent.
+ * Use this in Route Handlers that need to forward a streaming response to the browser.
+ */
+export function agentStreamConfig(path: string): { url: string; headers: Record<string, string> } {
+  return {
+    url: `${AGENT_BASE_URL}${path}`,
+    headers: {
+      Authorization: `Bearer ${AGENT_TOKEN}`,
+    },
+  }
+}

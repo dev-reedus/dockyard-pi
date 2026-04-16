@@ -1,14 +1,15 @@
 // /services/[id] — deep inspection page for a single service.
-// Server Component: fetches service details and recent logs on the server.
-// TODO: Resource charts and live log tail will be Client islands.
+// Server Component: fetches service details and an initial log snapshot.
+// LiveLogs (Client island) handles the snapshot/live toggle from there.
 
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import { ArrowDown, ArrowUp, Box, Cpu, Globe, MemoryStick, Network } from 'lucide-react'
+import { Box, Globe, Network } from 'lucide-react'
 import { getService, getServiceStats } from '@/lib/docker'
-import type { LogLine } from '@/lib/logs'
 import { getRecentLogs } from '@/lib/logs'
 import { ServiceActions } from '@/components/services/service-actions'
+import { ServiceStatsCards } from '@/components/services/service-stats-cards'
+import { LiveLogs } from '@/components/services/live-logs'
 import type { ServiceHealth, ServiceStatus } from '@/types/service'
 
 interface Props {
@@ -32,11 +33,6 @@ export default async function ServiceDetailPage({ params }: Props) {
 
   const isRunning = service.status === 'running' || service.status === 'restarting'
 
-  // Stats are only meaningful when the container is running
-  const cpu = stats?.cpuPercent ?? service.cpuPercent
-  const memMb = stats?.memoryMb ?? service.memoryMb
-  const memLimitMb = stats?.memoryLimitMb ?? service.memoryLimitMb
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -54,24 +50,12 @@ export default async function ServiceDetailPage({ params }: Props) {
       {/* Action buttons — Client island for interactivity */}
       <ServiceActions serviceId={service.id} status={service.status} />
 
-      {/* Key details grid */}
+      {/* Static service details */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <DetailCard
           label="Image"
           value={`${service.image}:${service.tag}`}
           icon={<Box size={14} />}
-        />
-        <DetailCard
-          label="CPU"
-          value={isRunning ? `${cpu.toFixed(1)}%` : '—'}
-          icon={<Cpu size={14} />}
-          variant="sky"
-        />
-        <DetailCard
-          label="Memory"
-          value={isRunning ? `${memMb.toFixed(0)} / ${memLimitMb.toFixed(0)} MB` : '—'}
-          icon={<MemoryStick size={14} />}
-          variant="indigo"
         />
         <DetailCard
           label="Internal port"
@@ -87,29 +71,14 @@ export default async function ServiceDetailPage({ params }: Props) {
             isUrl
           />
         )}
-        {isRunning && stats && (
-          <>
-            <DetailCard
-              label="Network RX"
-              value={`${stats.networkRxMb.toFixed(2)} MB`}
-              icon={<ArrowDown size={14} />}
-              variant="emerald"
-            />
-            <DetailCard
-              label="Network TX"
-              value={`${stats.networkTxMb.toFixed(2)} MB`}
-              icon={<ArrowUp size={14} />}
-              variant="emerald"
-            />
-          </>
-        )}
       </div>
 
-      {/* Recent logs — Suspense boundary so slow log fetch doesn't block the page */}
+      {/* Live stats — Client island that polls every 5s via SWR */}
+      {isRunning && <ServiceStatsCards serviceId={service.id} initialStats={stats} />}
+
+      {/* Logs — server fetches a snapshot; the LiveLogs Client component adds a live toggle */}
       <section>
-        <h2 className="mb-3 text-sm font-medium tracking-wider text-zinc-500 uppercase">
-          Recent logs
-        </h2>
+        <h2 className="mb-3 text-sm font-medium tracking-wider text-zinc-500 uppercase">Logs</h2>
         <Suspense
           fallback={
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6 text-center text-sm text-zinc-500">
@@ -117,7 +86,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             </div>
           }
         >
-          <LogsPanel serviceId={id} />
+          <LogsSection serviceId={id} />
         </Suspense>
       </section>
     </div>
@@ -242,43 +211,10 @@ function HealthBadge({ health }: { health: ServiceHealth }) {
 }
 
 // ---------------------------------------------------------------------------
-// Logs panel — separate async component so Suspense can wrap it independently.
+// Logs section — async Server Component that fetches the initial snapshot,
+// then renders the LiveLogs Client Component which handles the live toggle.
 // ---------------------------------------------------------------------------
-// TODO: make a Client Component that streams via SSE/WebSocket.
-
-async function LogsPanel({ serviceId }: { serviceId: string }) {
+async function LogsSection({ serviceId }: { serviceId: string }) {
   const logs = await getRecentLogs(serviceId, 50)
-
-  if (logs.length === 0) {
-    return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6 text-center text-sm text-zinc-500">
-        No logs available.
-      </div>
-    )
-  }
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
-      <div className="border-b border-zinc-800 px-4 py-2">
-        <span className="font-mono text-xs text-zinc-600">stdout / stderr — last 50 lines</span>
-      </div>
-      <div className="max-h-96 overflow-auto p-4">
-        {logs.map((line, i) => (
-          <LogLine key={i} line={line} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function LogLine({ line }: { line: LogLine }) {
-  const streamColor = line.stream === 'stderr' ? 'text-red-400' : 'text-zinc-400'
-
-  return (
-    <div className="flex gap-3 font-mono text-xs leading-5">
-      <span className="shrink-0 text-zinc-700 select-none">{line.timestamp}</span>
-      <span className={`shrink-0 select-none ${streamColor}`}>[{line.stream}]</span>
-      <span className="text-zinc-300">{line.message}</span>
-    </div>
-  )
+  return <LiveLogs serviceId={serviceId} initialLogs={logs} />
 }

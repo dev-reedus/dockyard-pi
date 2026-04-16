@@ -72,7 +72,8 @@ on the Pi that exposes only the operations the dashboard needs.
 
 ### Deploy on the Pi (Docker Compose — 64-bit only)
 
-> **32-bit Pi:** use the [build and deploy from another machine](#build-and-deploy-from-another-machine) section instead.
+> **32-bit Pi:** use the [build and deploy from another machine](#build-and-deploy-from-another-machine) section
+> instead.
 
 Clone the repo on the Pi and run:
 
@@ -93,7 +94,9 @@ DockYard will be available at `http://<pi-ip>:3000`.
 
 ### Build and deploy from another machine
 
-> **Required if your Pi runs a 32-bit OS (arm/v7).** Next.js 16 relies on SWC and Turbopack native binaries that are unavailable on arm32 — the build will fail on the Pi itself. Build on your dev machine and deploy the pre-built image instead.
+> **Required if your Pi runs a 32-bit OS (arm/v7).** Next.js 16 relies on SWC and Turbopack native binaries that are
+> unavailable on arm32 — the build will fail on the Pi itself. Build on your dev machine and deploy the pre-built image
+> instead.
 
 If your Pi is 64-bit this is optional, but still useful to offload the heavy build from the Pi.
 
@@ -126,7 +129,7 @@ cp .env.example .env && npm install && npm run dev
 ### v1 — in progress
 
 - [ ] Sync types between agent and Next.js app (single source of truth)
-- [ ] Live log tail via SSE or WebSocket (currently last 50 lines, static)
+- [x] Live log tail via SSE or WebSocket (currently last 50 lines, static)
 - [ ] Settings page — configure polling intervals, auth, danger zone actions
 - [ ] Deployments page polish — styled cards matching the rest of the UI
 - [ ] Better request logger on the agent (replace `console.log`)
