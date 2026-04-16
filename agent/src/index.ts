@@ -12,6 +12,7 @@ import { logsRouter } from './routes/logs.js'
 import { actionsRouter } from './routes/actions.js'
 import { deploymentsRouter } from './routes/deployments.js'
 import { eventsRouter } from './routes/events.js'
+import { hostRouter } from './routes/host.js'
 import { addEvent } from './lib/store.js'
 
 const PORT = parseInt(process.env['PORT'] ?? '3001', 10)
@@ -49,6 +50,7 @@ app.use('/services/:id/actions', actionsRouter)
 
 app.use('/deployments', deploymentsRouter)
 app.use('/events', eventsRouter)
+app.use('/host', hostRouter)
 
 // ---------------------------------------------------------------------------
 // Global error handler

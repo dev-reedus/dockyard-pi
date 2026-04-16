@@ -130,6 +130,7 @@ cp .env.example .env && npm install && npm run dev
 
 - [ ] Sync types between agent and Next.js app (single source of truth)
 - [x] Live log tail via SSE or WebSocket (currently last 50 lines, static)
+- [x] Pi host metrics — disk, temperature, CPU load (not just container stats)
 - [ ] Settings page — configure polling intervals, auth, danger zone actions
 - [ ] Deployments page polish — styled cards matching the rest of the UI
 - [ ] Better request logger on the agent (replace `console.log`)
@@ -140,7 +141,6 @@ cp .env.example .env && npm install && npm run dev
 - [ ] Compose diff preview before redeploy
 - [ ] GitHub webhook integration for one-click deploys from CI/CD
 - [ ] Cloudflare / Tailscale tunnel and DNS visualization
-- [ ] Pi host metrics — disk, temperature, CPU load (not just container stats)
 - [ ] Multiple Pi device support
 - [ ] Resource usage charts with history (currently point-in-time only)
 - [ ] Dark/light theme toggle

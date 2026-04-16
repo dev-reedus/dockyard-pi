@@ -5,6 +5,7 @@
 import { Suspense } from 'react'
 import { Activity, AlertTriangle, Server, Zap } from 'lucide-react'
 import { getEvents, getServices } from '@/lib/docker'
+import { HostMetrics } from '@/components/dashboard/host-metrics'
 import type { AppEvent } from '@/types/service'
 
 export default async function DashboardPage() {
@@ -45,6 +46,12 @@ export default async function DashboardPage() {
           variant="indigo"
         />
       </div>
+
+      {/* Host metrics — live-streamed Client island, no server data needed */}
+      <section>
+        <h2 className="mb-3 text-sm font-medium tracking-wider text-zinc-500 uppercase">Host</h2>
+        <HostMetrics />
+      </section>
 
       {/* Recent events list — wrapped in Suspense for future streaming */}
       <Suspense fallback={<p className="text-sm text-zinc-500">Loading events…</p>}>

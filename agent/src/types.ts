@@ -63,3 +63,15 @@ export interface AppEvent {
   source: string
   createdAt: string
 }
+
+export interface HostMetrics {
+  cpuPercent: number
+  memUsedMb: number
+  memTotalMb: number
+  diskUsedGb: number
+  diskTotalGb: number
+  /** null on non-Linux hosts or when thermal zone is unavailable */
+  tempC: number | null
+  uptimeSeconds: number
+  sampledAt: string
+}

@@ -139,7 +139,7 @@ extended with other ideas:
       keeps an open HTTP connection and the agent pipes `docker logs --follow` output in real time. No WebSocket server
       needed — SSE is one-directional and works over plain HTTP.
 
-- [ ] **Host metrics** — Expose Pi-level metrics: CPU temperature (`/sys/class/thermal`), disk usage (`df`), total RAM.
+- [x] **Host metrics** — Expose Pi-level metrics: CPU temperature (`/sys/class/thermal`), disk usage (`df`), total RAM.
       These sit alongside container stats on the dashboard without needing a separate tool like Prometheus.
 
 - [ ] **Webhook endpoint** — A `POST /deploy/:serviceId` endpoint callable from a GitHub Actions workflow after a
