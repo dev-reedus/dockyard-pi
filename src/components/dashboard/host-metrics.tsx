@@ -71,6 +71,17 @@ const VALUE_COLOR: Record<CardVariant, string> = {
   rose: 'text-rose-200',
 }
 
+// Full class strings so Tailwind's static scanner includes them in the build
+const BAR_COLOR: Record<CardVariant, string> = {
+  zinc: 'bg-zinc-500',
+  sky: 'bg-sky-400',
+  indigo: 'bg-indigo-500',
+  violet: 'bg-violet-500',
+  emerald: 'bg-emerald-500',
+  amber: 'bg-amber-500',
+  rose: 'bg-rose-500',
+}
+
 /**
  * Compute a diagonal gradient + border color that "heats up" as percent rises.
  *
@@ -125,15 +136,16 @@ function MetricCard({ label, value, icon, variant = 'zinc', barPercent }: Metric
           borderColor: `rgba(${BASE_RGB[variant]}, 0.18)`,
         }
 
-  // Bar color steps through the same thresholds
-  const barColor =
+  // Bar color steps through heat thresholds — full class strings ensure Tailwind
+  // includes them in the production build (dynamic template literals get purged)
+  const barClassName =
     barPercent === undefined
       ? ''
       : barPercent > 80
         ? 'bg-rose-500'
         : barPercent > 60
           ? 'bg-amber-500'
-          : `bg-[rgba(${BASE_RGB[variant]},0.9)]`
+          : BAR_COLOR[variant]
 
   return (
     <div className="rounded-xl border p-4 transition-colors duration-700" style={cardStyle}>
@@ -145,7 +157,7 @@ function MetricCard({ label, value, icon, variant = 'zinc', barPercent }: Metric
       {barPercent !== undefined && (
         <div className="mt-3 h-1 w-full rounded-full bg-black/20">
           <div
-            className={`h-1 rounded-full transition-all duration-700 ${barColor}`}
+            className={`h-1 rounded-full transition-all duration-700 ${barClassName}`}
             style={{ width: `${barPercent.toFixed(0)}%` }}
           />
         </div>
