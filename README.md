@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">DockYard</h1>
-<p align="center">A private control panel for your Raspberry Pi — built to experiment Next.js App Router, Server Actions, and SSR patterns.</p>
+<p align="center">A private control panel for your Raspberry Pi — built to experiment Next.js App Router, Server Actions, and SSR patterns, even if is not the best choice for this kind of project.</p>
 
 ---
 
