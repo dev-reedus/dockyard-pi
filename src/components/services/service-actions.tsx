@@ -44,6 +44,9 @@ export function ServiceActions({ serviceId, status }: ServiceActionsProps) {
           router.push('/services')
           return
         }
+
+        // revalidatePath in the Server Action already purges the cache — refresh picks it up
+        router.refresh()
       }
 
       setLastResult(

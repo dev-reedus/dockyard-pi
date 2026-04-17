@@ -18,6 +18,12 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+@layer base {
+  button {
+    cursor: pointer;
+  }
+}
+
 /* Subtle scrollbar for log panels and overflow containers */
 ::-webkit-scrollbar {
   width: 6px;
