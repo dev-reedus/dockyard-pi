@@ -11,7 +11,7 @@ import { useServices } from '@/hooks/use-services'
 import { restartService } from '@/lib/actions'
 import { UptimeBadge } from '@/components/ui/uptime-badge'
 import { StatusBadge } from '@/components/ui/status-badge'
-import type { Service } from '@/types/service'
+import type { Service, ServiceStatus } from '@/types/service'
 
 interface ServicesGridProps {
   initialData: Service[]
