@@ -12,7 +12,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (
-    <div className="flex h-full min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Mobile backdrop — closes drawer on tap */}
       {isOpen && (
         <div

@@ -151,9 +151,9 @@ function EventsList({ events }: { events: AppEvent[] }) {
       <h2 className="mb-3 text-sm font-medium tracking-wider text-zinc-500 uppercase">
         Recent events
       </h2>
-      <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+      <div className="max-h-96 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900">
         <ul className="divide-y divide-zinc-800">
-          {events.slice(0, 10).map((e) => (
+          {events.slice(0, 20).map((e) => (
             <li key={e.id} className="flex items-start gap-3 px-4 py-3">
               <span
                 className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${severityDot[e.severity]}`}
