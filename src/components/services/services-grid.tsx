@@ -9,7 +9,9 @@ import { useState, useTransition } from 'react'
 import { Cpu, ExternalLink, Loader2, MemoryStick, RotateCcw } from 'lucide-react'
 import { useServices } from '@/hooks/use-services'
 import { restartService } from '@/lib/actions'
-import type { Service, ServiceHealth, ServiceStatus } from '@/types/service'
+import { UptimeBadge } from '@/components/ui/uptime-badge'
+import { StatusBadge } from '@/components/ui/status-badge'
+import type { Service } from '@/types/service'
 
 interface ServicesGridProps {
   initialData: Service[]
@@ -110,8 +112,8 @@ function ServiceCard({ service }: { service: Service }) {
           <p className="mt-0.5 truncate font-mono text-xs text-zinc-600">{service.containerName}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <StatusBadge status={service.status} />
-          <HealthBadge health={service.health} />
+          <StatusBadge status={service.status} size="sm" />
+          <UptimeBadge uptime={service.uptime} size="sm" />
         </div>
       </div>
 
@@ -214,45 +216,5 @@ function MetricRow({
         />
       </div>
     </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Badges
-// ---------------------------------------------------------------------------
-const statusStyles: Record<ServiceStatus, { dot: string; text: string; bg: string }> = {
-  running: { dot: 'bg-sky-400', text: 'text-sky-400', bg: 'bg-sky-500/10' },
-  stopped: { dot: 'bg-rose-400', text: 'text-rose-400', bg: 'bg-rose-500/10' },
-  restarting: { dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/10' },
-  unknown: { dot: 'bg-zinc-500', text: 'text-zinc-500', bg: 'bg-zinc-800' },
-}
-
-function StatusBadge({ status }: { status: ServiceStatus }) {
-  const s = statusStyles[status]
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${s.bg} ${s.text}`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-      {status}
-    </span>
-  )
-}
-
-const healthStyles: Record<ServiceHealth, { text: string; bg: string }> = {
-  healthy: { text: 'text-sky-400', bg: 'bg-sky-500/10' },
-  unhealthy: { text: 'text-rose-400', bg: 'bg-rose-500/10' },
-  starting: { text: 'text-amber-400', bg: 'bg-amber-500/10' },
-  none: { text: 'text-zinc-600', bg: 'bg-zinc-800' },
-}
-
-function HealthBadge({ health }: { health: ServiceHealth }) {
-  const s = healthStyles[health]
-  return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-xs font-medium ${s?.bg ?? 'bg-zinc-800'} ${s?.text ?? 'text-zinc-600'}`}
-    >
-      {health}
-    </span>
   )
 }
