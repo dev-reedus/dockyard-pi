@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@dockyard/types": "*",
     "dockerode": "^4.0.4",
     "express": "^5.1.0"
   },

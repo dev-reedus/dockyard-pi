@@ -117,18 +117,18 @@ The Pi must have Docker installed and the repo cloned at `~/dockyard-pi`.
 ### Local development
 
 ```bash
-# Terminal 1 — agent
-cd agent && cp .env.example .env && npm install && npm run dev
-
-# Terminal 2 — Next.js app
+# Terminal 1 — Next.js app
 cp .env.example .env && npm install && npm run dev
+
+# Terminal 2 — agent
+cd agent && cp .env.example .env && npm run dev
 ```
 
 ## Improvements
 
 ### v1 — in progress
 
-- [ ] Sync types between agent and Next.js app (single source of truth)
+- [x] Sync types between agent and Next.js app (single source of truth)
 - [x] Live log tail via SSE or WebSocket (currently last 50 lines, static)
 - [x] Pi host metrics — disk, temperature, CPU load (not just container stats)
 - [ ] Settings page — configure polling intervals, auth, danger zone actions

@@ -70,8 +70,9 @@ DOCKER_SOCKET=
 
 ### 2. Development (local)
 
+### ⚠️Don't run npm install here, packages are handled via workspace in project root directory, to avoid duplicates
+
 ```bash
-npm install
 npm run dev     # tsx watch — auto-restarts on file change
 ```
 
