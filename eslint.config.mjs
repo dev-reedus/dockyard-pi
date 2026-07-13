@@ -29,7 +29,7 @@ const eslintConfig = defineConfig([
       '@typescript-eslint/no-floating-promises': 'error',
     },
   },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'agent/dist/**', 'next-env.d.ts']),
 ])
 
 export default eslintConfig

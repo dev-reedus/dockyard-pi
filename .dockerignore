@@ -1,0 +1,21 @@
+.git
+.github
+.idea
+.next
+node_modules
+agent/dist
+agent/node_modules
+coverage
+
+# Runtime secrets are supplied by Compose and must never enter image layers.
+.env
+.env.*
+agent/.env
+agent/.env.*
+!.env.example
+!agent/.env.example
+
+*.log
+*.tsbuildinfo
+AGENTS.md
+CLAUDE.md

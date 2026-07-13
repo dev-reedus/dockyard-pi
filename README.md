@@ -85,12 +85,16 @@ The script will:
 
 1. Copy `.env.example` → `.env` and `agent/.env.example` → `agent/.env` if they don't exist
 2. Auto-generate `AUTH_SECRET` and `AGENT_TOKEN` (shared between both services)
-3. Warn if `AUTH_PASSWORD` is still the default placeholder
+3. Refuse to start until `AUTH_PASSWORD` is changed from the placeholder
 4. Build both Docker images and start the stack
 
 DockYard will be available at `http://<pi-ip>:3000`.
 
 > **Change `AUTH_PASSWORD`** in `.env` before putting this on a network.
+
+The default `AUTH_COOKIE_SECURE=false` supports direct local HTTP access. Set it
+to `true` when DockYard is reached through HTTPS, such as Cloudflare Access or a
+TLS reverse proxy.
 
 ### Build and deploy from another machine
 

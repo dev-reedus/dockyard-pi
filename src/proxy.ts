@@ -20,7 +20,14 @@ export default function proxy(req: NextRequest): NextResponse {
   return NextResponse.redirect(loginUrl)
 }
 
-// Only run middleware on dashboard routes — not on login, API routes, or static files
+// Protect both UI pages and browser-facing API proxies. Without the API matcher,
+// unauthenticated users could read container metadata, metrics, and logs directly.
 export const config = {
-  matcher: ['/dashboard/:path*', '/services/:path*', '/deployments/:path*', '/settings/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/services/:path*',
+    '/deployments/:path*',
+    '/settings/:path*',
+    '/api/:path*',
+  ],
 }

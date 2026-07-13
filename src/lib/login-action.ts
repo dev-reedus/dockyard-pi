@@ -5,7 +5,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { timingSafeEqual } from 'crypto'
-import { cookieName, createSession } from '@/lib/auth'
+import { cookieName, createSession, shouldUseSecureCookies } from '@/lib/auth'
 
 const AUTH_PASSWORD = process.env['AUTH_PASSWORD'] ?? ''
 
@@ -33,7 +33,7 @@ export async function login(_prevState: unknown, formData: FormData): Promise<{ 
   cookieStore.set(cookieName, createSession(), {
     httpOnly: true,
     sameSite: 'strict',
-    secure: process.env['NODE_ENV'] === 'production',
+    secure: shouldUseSecureCookies(),
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
   })

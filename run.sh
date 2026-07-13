@@ -66,7 +66,7 @@ fi
 
 # Shared AGENT_TOKEN — must be identical in both env files
 agent_token=$(grep "^AGENT_TOKEN=.\+" agent/.env 2>/dev/null | cut -d= -f2- || true)
-if [ -z "$agent_token" ]; then
+if [ -z "$agent_token" ] || [ "$agent_token" = "change_me" ]; then
   agent_token=$(generate_secret)
   set_env_value agent/.env AGENT_TOKEN "$agent_token"
   info "Generated AGENT_TOKEN"
@@ -74,9 +74,11 @@ fi
 # Keep app .env in sync
 set_env_value .env AGENT_TOKEN "$agent_token"
 
-# Warn if AUTH_PASSWORD is still the placeholder
-if grep -q "^AUTH_PASSWORD=yourpassword" .env 2>/dev/null; then
-  warn "AUTH_PASSWORD is still 'yourpassword' — change it in .env before exposing this to a network!"
+# Refuse to start with an empty or documented placeholder password. This app can
+# control Docker, so an insecure default must not be deployable by accident.
+auth_password=$(grep "^AUTH_PASSWORD=.\+" .env 2>/dev/null | cut -d= -f2- || true)
+if [ -z "$auth_password" ] || [ "$auth_password" = "yourpassword" ]; then
+  die "Set a strong AUTH_PASSWORD in .env before starting DockYard"
 fi
 
 # ---------------------------------------------------------------------------

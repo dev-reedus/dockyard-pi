@@ -4,7 +4,11 @@ FROM node:22-slim AS builder
 
 WORKDIR /app
 
+# Copy every workspace manifest before installing so this layer is reproducible
+# and local packages such as @dockyard/types resolve without using npmjs.org.
 COPY package*.json ./
+COPY agent/package*.json ./agent/
+COPY packages/types/package.json ./packages/types/
 RUN npm ci
 
 COPY . .

@@ -1,33 +1,37 @@
 services:
-    agent:
-        build:
-            context: ./agent
-        image: dockyard-agent
-        container_name: dockyard-agent
-        restart: unless-stopped
-        volumes:
-            - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
-        env_file:
-            - ./agent/.env
-        networks:
-            - dockyard
-    app:
-        build:
-            context: .
-        image: dockyard-app
-        container_name: dockyard-app
-        restart: unless-stopped
-        ports:
-            - "3000:3000"
-        env_file:
-            - .env
-        environment:
-            - AGENT_BASE_URL=http://agent:3001
-        depends_on:
-            - agent
-        networks:
-            - dockyard
+  agent:
+    build:
+      # The agent imports the local @dockyard/types workspace, so its build
+      # needs the repository root as context.
+      context: .
+      dockerfile: agent/Dockerfile
+    image: dockyard-agent
+    container_name: dockyard-agent
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+    env_file:
+      - ./agent/.env
+    networks:
+      - dockyard
+  app:
+    build:
+      context: .
+    image: dockyard-app
+    container_name: dockyard-app
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      - AGENT_BASE_URL=http://agent:3001
+    depends_on:
+      agent:
+        condition: service_healthy
+    networks:
+      - dockyard
 
 networks:
-    dockyard:
-        driver: bridge
+  dockyard:
+    driver: bridge

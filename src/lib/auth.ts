@@ -9,6 +9,15 @@ const AUTH_SECRET = process.env['AUTH_SECRET'] ?? ''
 const COOKIE_NAME = 'dockyard_session'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 
+/**
+ * Secure cookies are required when the browser reaches DockYard over HTTPS.
+ * Keep this explicit because NODE_ENV is always production in Docker, while a
+ * first-time Pi setup is commonly opened over plain HTTP on the local network.
+ */
+export function shouldUseSecureCookies(): boolean {
+  return process.env['AUTH_COOKIE_SECURE'] === 'true'
+}
+
 if (!AUTH_SECRET && process.env['NODE_ENV'] !== 'test') {
   console.warn('[auth] WARNING: AUTH_SECRET is not set — sessions will not be secure')
 }
@@ -55,8 +64,7 @@ export function sessionCookieHeader(session: string): string {
     'Path=/',
     'HttpOnly',
     'SameSite=Strict',
-    // Add Secure in production, so cookie will be sent only over https, otherwise in http it could be intercepted.
-    process.env['NODE_ENV'] === 'production' ? 'Secure' : '',
+    shouldUseSecureCookies() ? 'Secure' : '',
   ]
     .filter(Boolean)
     .join('; ')
